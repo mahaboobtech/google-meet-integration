@@ -1,150 +1,238 @@
-# 🎥 MeetFlow - Website Google Meet REST API & OAuth 2.0 Integration
+# 🎥 MeetFlow - Direct Google Meet REST API & OAuth 2.0 Integration
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express.js-v4.19-blue.svg)](https://expressjs.com/)
 [![Google Meet API](https://img.shields.io/badge/Google%20Meet%20API-v2-4285F4.svg)](https://developers.google.com/workspace/meet)
+[![Google Calendar API](https://img.shields.io/badge/Google%20Calendar%20API-v3-34A853.svg)](https://developers.google.com/calendar)
 [![OAuth 2.0](https://img.shields.io/badge/OAuth-2.0-FF6F00.svg)](https://developers.google.com/identity/protocols/oauth2)
-[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-A production-ready full-stack web application for creating and managing **Google Meet meetings directly from your website** using Google's official **Google Meet REST API v2** and **OAuth 2.0**.
+A complete, production-ready web application for **creating and managing Google Meet meetings directly from your website** using Google's official **Google Meet REST API v2** and **OAuth 2.0**.
 
-Users and co-hosts can generate official Google Meet links (`https://meet.google.com/xxx-xxxx-xxx`) and invite guests directly from your web application **without opening Google Calendar or Google Meet creation pages**.
-
----
-
-## ✨ Key Features
-
-- 🎥 **Direct Google Meet Space Generation**: Creates Google Meet spaces programmatically using official Google Meet REST API **v2** (`POST https://meet.googleapis.com/v2/spaces`).
-- 🔐 **OAuth 2.0 PKCE Authentication**: Secure backend authorization code exchange. The `GOOGLE_CLIENT_SECRET` is kept strictly on the backend server and is **never exposed to the browser**.
-- 🚀 **Direct Join Without Asking (Knock Bypass)**: Integrates Google Calendar API (`calendar.events.insert` with `conferenceDataVersion: 1`) to natively email and register guests and co-hosts so they **JOIN DIRECTLY WITHOUT ASKING TO JOIN**.
-- ⚙️ **Meeting Customization**:
-  - Custom meeting title
-  - Access controls (**Restricted**, **Open**, **Trusted**)
-  - Entry point access controls (**All Entry Points**, **Creator App Only**)
-  - Interactive guest & co-host tag input system
-- 🛡️ **Universal Account Compatibility**: Includes automated fallback logic for personal `@gmail.com` consumer accounts and Google Workspace domain accounts.
-- 🎨 **Glassmorphic Dark Mode UI**: Modern single-page responsive web interface featuring glowing backdrop filters, toast notifications, one-click copy buttons, and session meeting history.
+This project allows users, co-hosts, and guests to generate official Google Meet links (`https://meet.google.com/xxx-xxxx-xxx`) and invite attendees **without opening Google Calendar or Google Meet creation pages**.
 
 ---
 
-## 🏛️ System Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend Web App                     │
-│         (HTML5 / Modern Vanilla CSS / JavaScript)       │
-└────────────────────────────┬────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────┐
-│                   Express.js Backend                    │
-│   • OAuth 2.0 PKCE Manager                               │
-│   • HTTP-Only Session Token Store                       │
-│   • CSRF State Validator                                │
-└──────────────┬───────────────────────────┬──────────────┘
-               │                           │
-               ▼                           ▼
-┌─────────────────────────────┐ ┌─────────────────────────┐
-│   Google Meet REST API v2   │ │   Google Calendar API   │
-│  (meet.googleapis.com/v2)   │ │  (calendar.events.insert)│
-└─────────────────────────────┘ └─────────────────────────┘
-```
+## 📘 Table of Contents
+1. [Prerequisites](#-prerequisites)
+2. [Step 1: Google Cloud Console Setup (Getting Your Keys)](#-step-1-google-cloud-console-setup-getting-your-keys)
+3. [Step 2: Project Installation & Local Setup](#-step-2-project-installation--local-setup)
+4. [Step 3: Running the Application](#-step-3-running-the-application)
+5. [How the Code Works (Developer Guide)](#-how-the-code-works-developer-guide)
+6. [API Endpoints Reference](#-api-endpoints-reference)
+7. [Troubleshooting & Gotchas](#-troubleshooting--gotchas)
 
 ---
 
-## 📋 Google Cloud Setup Checklist
+## 🛠️ Prerequisites
 
-Before running the project locally or in production, configure your Google Cloud Console project:
+Before you begin, ensure you have the following installed on your machine:
+- **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
+- **npm**: v9.0.0 or higher (comes bundled with Node.js)
+- **A Google Account**: (Standard `@gmail.com` or Google Workspace account)
 
-### 1. Create a Google Cloud Project
+---
+
+## 🔑 Step 1: Google Cloud Console Setup (Getting Your Keys)
+
+Follow these step-by-step instructions to create your Google Cloud Project, enable required APIs, and obtain your OAuth Client Credentials.
+
+### 1.1 Create a New Google Cloud Project
 1. Open the [Google Cloud Console](https://console.cloud.google.com/).
-2. Click **Create Project** and name it **"Website Google Meet Integration"**.
+2. In the top navigation bar, click the **Project Dropdown** and click **New Project**.
+3. Set **Project Name**: `Website Google Meet Integration`.
+4. Click **Create** and select your newly created project.
 
-### 2. Enable Required APIs
-1. Navigate to **APIs & Services > Library**.
-2. Search for **Google Meet API** and click **Enable**.
-3. Search for **Google Calendar API** and click **Enable**.
+### 1.2 Enable Required Google REST APIs
+You must enable **two** official Google APIs for this project:
 
-### 3. Configure OAuth Consent Screen
-1. Navigate to **APIs & Services > OAuth consent screen**.
-2. Select **User Type**: **External** (or **Internal** if restricted to your Google Workspace organization).
-3. Enter App name (e.g. `MeetFlow Manager`), support email, and developer contact info.
-4. Add the following **OAuth Scopes**:
-   - `https://www.googleapis.com/auth/meetings.space.created`
-   - `https://www.googleapis.com/auth/meetings.space.readonly`
-   - `https://www.googleapis.com/auth/calendar.events`
-   - `https://www.googleapis.com/auth/userinfo.email`
-   - `https://www.googleapis.com/auth/userinfo.profile`
-5. If testing in unverified status, add your test email addresses under **Test users**.
+1. **Google Meet API**:
+   - Go to **APIs & Services > Library** (or open [Google Meet API Library](https://console.cloud.google.com/apis/library/meet.googleapis.com)).
+   - Click **Enable**.
+2. **Google Calendar API**:
+   - Go to **APIs & Services > Library** (or open [Google Calendar API Library](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com)).
+   - Click **Enable**.
 
-### 4. Create OAuth 2.0 Credentials
-1. Navigate to **APIs & Services > Credentials > Create Credentials > OAuth client ID**.
-2. Select Application type: **Web application**.
-3. Set **Authorized JavaScript origins**: `http://localhost:3000` (and your production URL).
-4. Set **Authorized redirect URIs**: `http://localhost:3000/api/google/callback`.
-5. Copy your **Client ID** and **Client Secret**.
+### 1.3 Configure OAuth Consent Screen & Test Users
+1. Go to **APIs & Services > OAuth consent screen**.
+2. Select **User Type**:
+   - Choose **External** (if testing with personal `@gmail.com` accounts).
+   - Choose **Internal** (if restricted to your Google Workspace organization).
+3. Click **Create**.
+4. Fill in App Information:
+   - **App name**: `MeetFlow Integration`
+   - **User support email**: Select your email address.
+   - **Developer contact information**: Enter your email address.
+5. Click **Save and Continue**.
+6. On the **Scopes** page, click **Add or Remove Scopes** and add these 5 scope URLs:
+   ```text
+   https://www.googleapis.com/auth/meetings.space.created
+   https://www.googleapis.com/auth/meetings.space.readonly
+   https://www.googleapis.com/auth/calendar.events
+   https://www.googleapis.com/auth/userinfo.email
+   https://www.googleapis.com/auth/userinfo.profile
+   ```
+7. Click **Update** and then **Save and Continue**.
+8. On the **Test users** page, click **+ ADD USERS**:
+   - Add your own email address (`your-email@gmail.com`) and any co-host email addresses.
+   - *Note: If you skip adding test users, Google will block sign-in with Error 403: access_denied.*
+9. Click **Save and Continue**.
+
+### 1.4 Create OAuth 2.0 Credentials (Client ID & Client Secret)
+1. Go to **APIs & Services > Credentials**.
+2. Click **+ Create Credentials** at the top and select **OAuth client ID**.
+3. Set **Application type**: **Web application**.
+4. Set **Name**: `MeetFlow Web Client`.
+5. Under **Authorized JavaScript origins**, click **+ ADD URI**:
+   - Enter: `http://localhost:3000`
+6. Under **Authorized redirect URIs**, click **+ ADD URI**:
+   - Enter: `http://localhost:3000/api/google/callback`
+7. Click **Create**.
+8. A modal will pop up with your **Client ID** and **Client Secret**. Copy both values!
 
 ---
 
-## 🚀 Quick Start & Installation
+## 💻 Step 2: Project Installation & Local Setup
 
-### 1. Clone the Repository
+### 2.1 Clone the Repository
 ```bash
 git clone https://github.com/mahaboobtech/google-meet-integration.git
 cd google-meet-integration
 ```
 
-### 2. Install Dependencies
+### 2.2 Install Node.js Dependencies
 ```bash
 npm install
 ```
 
-### 3. Configure Environment Variables
-Create a `.env` file in the root directory (based on `.env.example`):
-```env
-PORT=3000
-GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:3000/api/google/callback
-SESSION_SECRET=your_super_secret_session_key
+### 2.3 Environment Variable Configuration (`.env`)
+Create a new file named **`.env`** in the root directory of the project (copying from `.env.example`):
+
+```bash
+cp .env.example .env
 ```
 
-### 4. Run the Server
+Open `.env` and fill in your Google Cloud OAuth credentials obtained in **Step 1.4**:
+
+```env
+# Server Port
+PORT=3000
+
+# Google OAuth Credentials (from Google Cloud Console)
+GOOGLE_CLIENT_ID=1033455873238-xxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/google/callback
+
+# Secret key for encrypting HTTP-only user session cookies
+SESSION_SECRET=meetflow-secure-session-key-2026
+```
+
+> ⚠️ **Security Warning**: NEVER commit your `.env` or Client Secret to GitHub! `.env` is automatically ignored in `.gitignore`.
+
+---
+
+## 🚀 Step 3: Running the Application
+
+### Start the Express Server
+Run the following command in your terminal:
+
 ```bash
 npm start
 ```
-Or for auto-reloading development mode:
+
+Or for development mode (auto-reloading on file changes):
+
 ```bash
 npm run dev
 ```
 
-Open **`http://localhost:3000`** in your browser!
+You will see output confirming startup:
+
+```text
+====================================================
+🚀 Website Google Meet Integration Server Running
+🌐 URL: http://localhost:3000
+🔑 OAuth Redirect: http://localhost:3000/api/google/callback
+====================================================
+```
+
+### Test the Integration Flow in Your Browser
+1. Open [`http://localhost:3000`](http://localhost:3000).
+2. Click **Connect Google Account** in the top right navbar to authenticate via Google OAuth 2.0.
+3. Once authenticated, enter a **Meeting Title** (e.g. `Architecture Review`).
+4. Add guest & co-host email addresses (e.g. `cohost@example.com`) with role selection.
+5. Click **CREATE GOOGLE MEET**.
+6. Your official Google Meet link (`https://meet.google.com/xxx-xxxx-xxx`) is generated instantly with a **One-Click Copy Link** button!
 
 ---
 
-## 🔌 API Endpoint Reference
+## 🧠 How the Code Works (Developer Guide)
+
+Here is how the project files interact under the hood:
+
+```text
+google-meet-integration/
+├── .env.example                # Sample environment configuration template
+├── .gitignore                  # Prevents committing secrets & node_modules
+├── package.json                # Project dependencies & scripts
+├── README.md                   # Developer documentation
+├── public/
+│   ├── index.html              # Modern single-page web UI
+│   ├── css/style.css           # Dark mode glassmorphism styling
+│   └── js/app.js               # Client-side form controller & API fetcher
+└── src/
+    ├── server.js               # Express server setup & session middleware
+    ├── routes/
+    │   └── api.js              # REST API endpoints (/api/google/*, /api/meetings)
+    └── services/
+        ├── googleAuth.js       # OAuth 2.0 client & token management
+        ├── googleMeet.js       # Direct Google Meet REST API v2 service
+        └── googleCalendar.js   # Native Calendar invitation service for Direct Join
+```
+
+### Key Technical Mechanisms Explained
+
+1. **Direct Space Creation (`src/services/googleMeet.js`)**:
+   - Uses `authClient.request({ url: 'https://meet.googleapis.com/v2/spaces', method: 'POST', data: ... })`.
+   - Using `authClient.request` ensures the HTTP `Authorization: Bearer <access_token>` header is injected into every Google API call.
+2. **Direct Join Without Asking (`src/services/googleCalendar.js`)**:
+   - Standard standalone Meet URLs require external guests to click "Ask to join" (knock screen).
+   - To bypass knocking, `sendCalendarInvitation()` invokes Google Calendar API (`calendar.events.insert`) passing **`conferenceDataVersion: 1`**, `guestsCanInviteOthers: true`, and native `conferenceData`.
+   - This registers attendee emails directly with Google's video servers, allowing co-hosts & guests to **JOIN DIRECTLY WITHOUT ASKING**.
+3. **Consumer `@gmail.com` Fallback**:
+   - Setting custom enterprise `accessType` policies is restricted by Google on personal `@gmail.com` accounts.
+   - `googleMeet.js` catches 403 `updateAccessType` restrictions and automatically retries space creation with standard account defaults, guaranteeing 100% success for all account types.
+
+---
+
+## 🔌 API Endpoints Reference
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/google/auth` | Initiates Google OAuth 2.0 consent flow with state validation | No |
-| `GET` | `/api/google/callback` | OAuth 2.0 redirect callback & token exchange | No |
-| `GET` | `/api/google/status` | Returns authentication state and user profile | No |
-| `POST` | `/api/google/logout` | Revokes and destroys session tokens | Yes |
-| `POST` | `/api/meetings` | Creates a Google Meet space & dispatches calendar invites | Yes |
-| `GET` | `/api/meetings` | Lists meeting history created in current session | No |
-| `GET` | `/api/meetings/:id` | Fetches Google Meet space details from Google API | Yes |
+| `GET` | `/api/google/auth` | Redirects browser to Google OAuth 2.0 consent screen | No |
+| `GET` | `/api/google/callback` | OAuth callback, exchanges authorization code for tokens | No |
+| `GET` | `/api/google/status` | Returns `{ authenticated: true/false, user: {...} }` | No |
+| `POST` | `/api/google/logout` | Destroys user session tokens | Yes |
+| `POST` | `/api/meetings` | Creates Google Meet space & dispatches calendar invites | Yes |
+| `GET` | `/api/meetings` | Returns meeting history created in current session | No |
+| `GET` | `/api/meetings/:id` | Fetches Google Meet space details from Google REST API | Yes |
 
 ---
 
-## 🛡️ Security Architecture & Practices
+## ❓ Troubleshooting & Gotchas
 
-- 🔒 **Zero Frontend Exposure**: `GOOGLE_CLIENT_SECRET` is used exclusively on the Node.js server.
-- 🛡️ **CSRF Protection**: OAuth requests use randomized `state` validation tokens stored in session.
-- 🍪 **HTTP-Only Cookies**: Session cookies are configured with `httpOnly: true` to prevent XSS credential theft.
-- 🙈 **Strict Git Exclusions**: Secret files (`.env`, `client_secret_*.json`) are explicitly excluded via `.gitignore`.
+### 1. Error 403: access_denied (`App has not completed Google verification`)
+- **Cause**: Google Cloud project is in "Testing" mode and your email is not listed under Test Users.
+- **Solution**: Go to Google Cloud Console > **OAuth consent screen > Test users**, click **+ ADD USERS**, and add your email.
+
+### 2. Error 403: `Google Calendar API has not been used... or it is disabled`
+- **Cause**: Google Calendar API is not enabled in your Google Cloud Project.
+- **Solution**: Open [Google Calendar API Library](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) and click **Enable**.
+
+### 3. Guests still see "Ask to Join" (Knock Screen)
+- **Cause**: The guest opened the link while signed into a different email address than the one invited.
+- **Solution**: Ensure the guest is logged into the exact email address specified when adding guests.
 
 ---
 
 ## 📜 License
-
 Distributed under the MIT License. See `LICENSE` for details.
