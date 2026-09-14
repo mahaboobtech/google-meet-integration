@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetFlow - Direct Google Meet Integration</title>
+  <meta name="description" content="Create and manage Google Meet meetings directly from your website using Google Meet REST API v1 and OAuth 2.0.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Background Glow FX -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Header Navigation -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-video"></i>
+        </div>
+        <span class="brand-name">Meet<span class="gradient-text">Flow</span></span>
+        <span class="badge-api"><i class="fa-brands fa-google"></i> Meet REST API</span>
+      </div>
+
+      <div class="user-auth-bar" id="userAuthBar">
+        <!-- JS renders auth status here -->
+        <div class="skeleton-auth"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+    <div class="container">
+      
+      <!-- Toast Alert Banner -->
+      <div id="toastContainer" class="toast-container"></div>
+
+      <!-- Hero Header -->
+      <section class="hero-section text-center">
+        <h1 class="hero-title">Direct <span class="gradient-text">Google Meet</span> Creation</h1>
+        <p class="hero-subtitle">Generate official Google Meet spaces instantly through REST API & OAuth 2.0 without opening Google Calendar.</p>
+      </section>
+
+      <!-- Main Layout Grid -->
+      <div class="app-grid">
+        
+        <!-- Meeting Creation Panel -->
+        <section class="card glass-card creation-card">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-calendar-plus icon-gradient"></i> Create Google Meet</h2>
+            <p>Configure meeting options and invite guests</p>
+          </div>
+
+          <form id="createMeetForm" class="meet-form">
+            <!-- Title Input -->
+            <div class="form-group">
+              <label for="meetingTitle"><i class="fa-solid fa-pen"></i> Meeting Title <span class="required">*</span></label>
+              <input type="text" id="meetingTitle" class="form-control" placeholder="e.g. Project Discussion & Architecture Review" required>
+            </div>
+
+            <!-- Access Controls -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="accessType"><i class="fa-solid fa-lock"></i> Space Access Settings</label>
+                <div class="select-wrapper">
+                  <select id="accessType" class="form-control">
+                    <option value="RESTRICTED" selected>Restricted (Only invited guests / domain)</option>
+                    <option value="OPEN">Open (Anyone with the link can join)</option>
+                    <option value="TRUSTED">Trusted (Organization & explicitly invited)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="entryPointAccess"><i class="fa-solid fa-door-open"></i> Entry Point Access</label>
+                <div class="select-wrapper">
+                  <select id="entryPointAccess" class="form-control">
+                    <option value="ALL" selected>All Entry Points (Web, Phone, App)</option>
+                    <option value="CREATOR_APP_ONLY">Creator App Only</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Guest Email & Role Inputs -->
+            <div class="form-group">
+              <label><i class="fa-solid fa-user-plus"></i> Guests & Co-Hosts</label>
+              
+              <div class="guest-input-row">
+                <input type="email" id="guestEmailInput" class="form-control" placeholder="Enter guest email (e.g. john@example.com)">
+                <div class="select-wrapper role-select-wrapper">
+                  <select id="guestRoleInput" class="form-control">
+                    <option value="ATTENDEE">Guest / Member</option>
+                    <option value="COHOST">Co-Host</option>
+                  </select>
+                </div>
+                <button type="button" id="btnAddGuest" class="btn btn-secondary">
+                  <i class="fa-solid fa-plus"></i> Add
+                </button>
+              </div>
+
+              <!-- Guest Chips Container -->
+              <div id="guestChipsContainer" class="guest-chips-container">
+                <span class="no-guests-text"><i class="fa-solid fa-info-circle"></i> No guests added yet. Add email addresses above.</span>
+              </div>
+            </div>
+
+            <!-- Calendar Invite Option -->
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label" for="sendCalendarInvite">
+                <input type="checkbox" id="sendCalendarInvite" checked>
+                <span><i class="fa-regular fa-calendar-check icon-gradient"></i> Send Calendar Invite to Guests (Enables Direct Join Without Asking)</span>
+              </label>
+            </div>
+
+            <!-- Submit CTA Button -->
+            <div class="form-actions">
+              <button type="submit" id="btnCreateMeet" class="btn btn-primary btn-lg btn-block">
+                <span class="btn-text"><i class="fa-solid fa-video"></i> CREATE GOOGLE MEET</span>
+                <span class="btn-spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i> Creating Space...</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Result Display Card (Initial State or Generated State) -->
+        <section class="card glass-card result-card" id="resultCard">
+          <div class="result-placeholder" id="resultPlaceholder">
+            <div class="placeholder-icon">
+              <i class="fa-solid fa-video-slash"></i>
+            </div>
+            <h3>No Meeting Created Yet</h3>
+            <p>Fill out the form on the left and click <strong>CREATE GOOGLE MEET</strong> to generate your official meeting link.</p>
+          </div>
+
+          <div class="result-content hidden" id="resultContent">
+            <div class="result-header">
+              <div class="success-badge"><i class="fa-solid fa-circle-check"></i> Meeting Created Successfully</div>
+              <span class="result-time" id="resultTime">Just now</span>
+            </div>
+
+            <div class="result-body">
+              <div class="result-field">
+                <label>Title</label>
+                <h3 class="result-title" id="resultTitle">Project Discussion</h3>
+              </div>
+
+              <div class="result-field">
+                <label>Meet URL</label>
+                <div class="url-box">
+                  <input type="text" id="resultMeetUrl" readonly value="https://meet.google.com/xxx-xxxx-xxx">
+                  <button id="btnCopyMeetUrl" class="btn btn-copy" title="Copy link">
+                    <i class="fa-regular fa-copy"></i> Copy Meet Link
+                  </button>
+                </div>
+              </div>
+
+              <div class="result-row">
+                <div class="result-field">
+                  <label>Space Code</label>
+                  <div class="code-badge" id="resultSpaceCode">xxx-xxxx-xxx</div>
+                </div>
+                <div class="result-field">
+                  <label>Access Type</label>
+                  <div class="access-badge" id="resultAccessType">RESTRICTED</div>
+                </div>
+              </div>
+
+              <div class="result-field">
+                <label>Guests & Roles (<span id="resultGuestCount">0</span>)</label>
+                <div class="guests-list" id="resultGuestsList">
+                  <!-- JS renders list of emails with badge -->
+                </div>
+              </div>
+
+              <div class="result-actions">
+                <a id="btnJoinMeet" href="#" target="_blank" rel="noopener" class="btn btn-success btn-lg">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Join Google Meet Now
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Recent Meetings Table -->
+      <section class="card glass-card history-section">
+        <div class="card-header flex-between">
+          <div>
+            <h2><i class="fa-solid fa-clock-rotate-left icon-gradient"></i> Session Meeting History</h2>
+            <p>All meetings created during your current session</p>
+          </div>
+          <button id="btnRefreshHistory" class="btn btn-icon" title="Refresh history">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Meet Link</th>
+                <th>Access</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="5" class="text-center empty-table">
+                  <i class="fa-solid fa-calendar-xmark"></i> No meetings created in this session.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container text-center">
+      <p>Powered by official <strong>Google Meet REST API v1</strong> & <strong>OAuth 2.0</strong> • MeetFlow Integration</p>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
